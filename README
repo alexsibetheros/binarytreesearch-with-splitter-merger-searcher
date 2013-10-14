@@ -1,0 +1,29 @@
+﻿Alexander Sibetheros
+AM: 1115200900261
+
+This program simulates a binary process tree for efficient searching through a binary file for specific records.
+The program starts by creating the root process, which then calls the initial node(aka. 1st merger/splitter) and from that point on, depending on the depth given from the command line, that many more internal nodes( merger/splitters) are created until depth=1, where final, for every merger/splitter, two leaf nodes are created(searchers). 
+There can be an indefinite number of queries given, but each will regard the binary file as new again every time they search through it. 
+The basic structure is mentioned above, but I should note that each node is a process, called upon from the previous, using a combination of fork + exec ( in my case execlp). 
+Searchers work by scanning through the binary file for any and all records that fit the criteria, return each result to its parent process. 
+Like wise, each parent process(merger splitter) collects the “scanned” records and sends them to its own parent.
+Finally,  when all “correct” records have reached the initial node(which also returns the records to its root parent), a process called sort is called from the root, sorting the results according to the query given.
+At each level of this binary tree, records are not buffered anywhere, but sent immediately when received to the upper level, and when records reach root, records are written to a .txt file(.txt and not binary because sort works only with txt files).
+Parent processes recognize if the child process has completed any transmissions when they send a “special” record, with a modified id price of “-1”, thus signaling that all records underneath have been completed.
+It is noteworthy to mention that after this special record has been sent, another struct is also sent, struct time, which contains the Cpu and real time it took to scan the files. Times are collected in parent nodes from both children, divided by 2 to get the average and sent to the parent node.
+In the root, records are stored in a txt file that is sent to the process sort (which is also called with fork + exec), which in its own stores the sorted records in an output file. Afterwards the previous txt with unsorted records is destroyed.
+
+When necessary, pipes are created by getting the id of the current process and appending something extra to create a unique name. Pipes are used to transfer data from the child process to the parent process, by using structs(Struct Record, struct time). When all transactions have been completed, both the parent and the child process close their pipes respectively and the parent process also destroys the pipe(freeing the space and the name).
+
+When running this program, the user can run as many queries as he/she wished, each query is done upon the original binary text. Queries consist of (column) (comparison symbol) (integer or number that will be compared).
+Queries are stored as strings that eventually will be decoded into useful information in the searcher nodes. (Query is also decoded in the root inorder to instruct the sort process on which column to sort).
+
+
+The command line arguments for this program are: executable, -d (depthsize), -r (record file in binary format)
+If any less arguments are given, program with terminate(error to stdou).
+If a depthsize of <0 or >5 is given, likewise program will terminate(error to stdout).
+If a file that isn't binary or has some sort of problem, program will generate an error and then close.
+
+Makefile: the makefile I have added is a simplified version that is made especially for this exercise. It compiles each .c into its own process, allowing me to run “root” which during its run will fork+exec many other processes, of which most are the remaining .c in the folder(and thus must be compiled separately). 
+
+The time calculations are based on the code given from the exercise, added to the searchers and the results given to a time struct to pass through the various mergers. 
